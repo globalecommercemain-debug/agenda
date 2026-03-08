@@ -313,18 +313,20 @@ function scheduleSave() {
   // Always save locally immediately
   localStorage.setItem(`agenda:${dk()}`, JSON.stringify({checks:chk,summary}));
 
-  if (API_URL === "https://script.google.com/macros/s/AKfycbwPD2baGycH7PbIzPma3FddT3g-0z9y4Fk3lixHR9Tux0Jn2fGJqOd2Z8Uu7JAeHegr/execI") return;
+  if (API_URL === "https://script.google.com/macros/s/AKfycbwPD2baGycH7PbIzPma3FddT3g-0z9y4Fk3lixHR9Tux0Jn2fGJqOd2Z8Uu7JAeHegr/exec") return;
 
   // Debounce cloud save by 1.5s
   if (saveTimer) clearTimeout(saveTimer);
   setSyncStatus("pending", "salvando...");
   saveTimer = setTimeout(async () => {
     try {
-      const r = await fetch(API_URL, {
-        method: "POST",
-        headers: {"Content-Type":"text/plain"}, // Apps Script quirk
-        body: JSON.stringify({ action:"save", date:dk(), checks:chk, summary })
+      const params = new URLSearchParams({
+        action: "save",
+        date: dk(),
+        checks: encodeURIComponent(JSON.stringify(chk)),
+        summary: encodeURIComponent(summary)
       });
+      const r = await fetch(`${API_URL}?${params.toString()}`);
       const data = await r.json();
       if (data.error) throw new Error(data.error);
       setSyncStatus("ok", "✓ sync");
@@ -407,7 +409,7 @@ function render() {
 
   // Re-sync every 30s
   setInterval(async () => {
-    if (API_URL !== "COLE_SUA_URL_AQUI" && !document.hidden) {
+    if (API_URL !== "https://script.google.com/macros/s/AKfycbwPD2baGycH7PbIzPma3FddT3g-0z9y4Fk3lixHR9Tux0Jn2fGJqOd2Z8Uu7JAeHegr/exec" && !document.hidden) {
       try {
         const r = await fetch(`${API_URL}?action=load&date=${dk()}`);
         const data = await r.json();
