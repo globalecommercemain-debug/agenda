@@ -283,9 +283,10 @@ function setSyncStatus(state, text) {
   el.textContent = text;
 }
 
+const API_CONFIGURED = API_URL && API_URL.startsWith("https://script.google.com/");
+
 async function loadFromCloud() {
-  if (API_URL === "https://script.google.com/macros/s/AKfycbwPD2baGycH7PbIzPma3FddT3g-0z9y4Fk3lixHR9Tux0Jn2fGJqOd2Z8Uu7JAeHegr/exec") {
-    // Fallback to localStorage
+  if (!API_CONFIGURED) {
     try { const r=localStorage.getItem(`agenda:${dk()}`); if(r){const p=JSON.parse(r);chk=p.checks||{};summary=p.summary||""} } catch(e){}
     setSyncStatus("pending", "local");
     return;
@@ -293,7 +294,7 @@ async function loadFromCloud() {
 
   try {
     setSyncStatus("pending", "sync...");
-    const r = await fetch(`${API_URL}?action=load&date=${dk()}`);
+    const r = await fetch(`${API_URL}?action=load&date=${dk()}&_t=${Date.now()}`);
     const data = await r.json();
     if (data.error) throw new Error(data.error);
     chk = data.checks || {};
@@ -313,7 +314,7 @@ function scheduleSave() {
   // Always save locally immediately
   localStorage.setItem(`agenda:${dk()}`, JSON.stringify({checks:chk,summary}));
 
-  if (API_URL === "https://script.google.com/macros/s/AKfycbwPD2baGycH7PbIzPma3FddT3g-0z9y4Fk3lixHR9Tux0Jn2fGJqOd2Z8Uu7JAeHegr/exec") return;
+  if (!API_CONFIGURED) return;
 
   // Debounce cloud save by 1.5s
   if (saveTimer) clearTimeout(saveTimer);
@@ -409,7 +410,7 @@ function render() {
 
   // Re-sync every 30s
   setInterval(async () => {
-    if (API_URL !== "https://script.google.com/macros/s/AKfycbwPD2baGycH7PbIzPma3FddT3g-0z9y4Fk3lixHR9Tux0Jn2fGJqOd2Z8Uu7JAeHegr/exec" && !document.hidden) {
+    if (API_CONFIGURED && !document.hidden) {
       try {
         const r = await fetch(`${API_URL}?action=load&date=${dk()}`);
         const data = await r.json();
