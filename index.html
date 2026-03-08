@@ -284,28 +284,97 @@ function setSyncStatus(state, text) {
 }
 
 const API_CONFIGURED = API_URL && API_URL.startsWith("https://script.google.com/");
+let lastSavedJson = "";
+
+async function apiGet(params) {
+  const url = `${API_URL}?${new URLSearchParams(params).toString()}&_t=${Date.now()}`;
+  const r = await fetch(url);
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  return await r.json();
+}
+
+async function apiPost(data) {
+  // Use a hidden form + iframe to POST to Apps Script (avoids CORS entirely)
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error("timeout")), 10000);
+    
+    // Create hidden iframe to receive response
+    const iframeName = "saveFrame" + Date.now();
+    const iframe = document.createElement("iframe");
+    iframe.name = iframeName;
+    iframe.style.display = "none";
+    document.body.appendChild(iframe);
+    
+    // Create and submit form
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = API_URL;
+    form.target = iframeName;
+    form.style.display = "none";
+    
+    // Add data as hidden fields
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = "payload";
+    input.value = JSON.stringify(data);
+    form.appendChild(input);
+    
+    document.body.appendChild(form);
+    
+    iframe.onload = () => {
+      clearTimeout(timeout);
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+        document.body.removeChild(form);
+      }, 100);
+      resolve({ ok: true });
+    };
+    
+    iframe.onerror = () => {
+      clearTimeout(timeout);
+      document.body.removeChild(iframe);
+      document.body.removeChild(form);
+      reject(new Error("iframe error"));
+    };
+    
+    form.submit();
+  });
+}
 
 async function loadFromCloud() {
+  // Always load localStorage first
+  try {
+    const r = localStorage.getItem(`agenda:${dk()}`);
+    if (r) { const p = JSON.parse(r); chk = p.checks || {}; summary = p.summary || ""; }
+  } catch(e) {}
+
   if (!API_CONFIGURED) {
-    try { const r=localStorage.getItem(`agenda:${dk()}`); if(r){const p=JSON.parse(r);chk=p.checks||{};summary=p.summary||""} } catch(e){}
     setSyncStatus("pending", "local");
     return;
   }
 
   try {
     setSyncStatus("pending", "sync...");
-    const r = await fetch(`${API_URL}?action=load&date=${dk()}&_t=${Date.now()}`);
-    const data = await r.json();
+    const data = await apiGet({ action: "load", date: dk() });
     if (data.error) throw new Error(data.error);
-    chk = data.checks || {};
-    summary = data.summary || "";
-    // Also save locally as backup
+    
+    const cloudChecks = data.checks || {};
+    const cloudSummary = data.summary || "";
+    const cloudCount = Object.keys(cloudChecks).filter(k => cloudChecks[k]).length;
+    const localCount = Object.keys(chk).filter(k => chk[k]).length;
+    
+    // Use whichever has more completed tasks (merge strategy: most progress wins)
+    if (cloudCount >= localCount && cloudCount > 0) {
+      chk = cloudChecks;
+      summary = cloudSummary || summary;
+    }
+    
+    lastSavedJson = JSON.stringify(chk);
     localStorage.setItem(`agenda:${dk()}`, JSON.stringify({checks:chk,summary}));
     setSyncStatus("ok", "✓ sync");
   } catch (e) {
     console.error("Load error:", e);
-    // Fallback to localStorage
-    try { const r=localStorage.getItem(`agenda:${dk()}`); if(r){const p=JSON.parse(r);chk=p.checks||{};summary=p.summary||""} } catch(e2){}
     setSyncStatus("err", "offline");
   }
 }
@@ -316,26 +385,38 @@ function scheduleSave() {
 
   if (!API_CONFIGURED) return;
 
-  // Debounce cloud save by 1.5s
+  // Debounce cloud save by 2s
   if (saveTimer) clearTimeout(saveTimer);
   setSyncStatus("pending", "salvando...");
   saveTimer = setTimeout(async () => {
+    const currentJson = JSON.stringify(chk);
+    if (currentJson === lastSavedJson) {
+      setSyncStatus("ok", "✓ sync");
+      return;
+    }
+    
     try {
-      const params = new URLSearchParams({
+      await apiGet({
         action: "save",
         date: dk(),
         checks: JSON.stringify(chk),
         summary: summary
       });
-      const r = await fetch(`${API_URL}?${params.toString()}`);
-      const data = await r.json();
-      if (data.error) throw new Error(data.error);
+      lastSavedJson = currentJson;
       setSyncStatus("ok", "✓ sync");
     } catch (e) {
       console.error("Save error:", e);
-      setSyncStatus("err", "offline");
+      // Fallback: try POST via form
+      try {
+        await apiPost({ action: "save", date: dk(), checks: chk, summary });
+        lastSavedJson = currentJson;
+        setSyncStatus("ok", "✓ sync");
+      } catch (e2) {
+        console.error("POST fallback error:", e2);
+        setSyncStatus("err", "offline");
+      }
     }
-  }, 1500);
+  }, 2000);
 }
 
 // ---- RENDER ----
@@ -408,16 +489,24 @@ function render() {
     scheduleSave();
   });
 
-  // Re-sync every 30s
+  // Re-sync every 30s (only pull if not currently saving)
   setInterval(async () => {
-    if (API_CONFIGURED && !document.hidden) {
+    if (API_CONFIGURED && !document.hidden && !saveTimer) {
       try {
-        const r = await fetch(`${API_URL}?action=load&date=${dk()}`);
-        const data = await r.json();
+        const data = await apiGet({ action: "load", date: dk() });
         if (!data.error) {
-          chk = data.checks || {};
-          summary = data.summary || "";
-          render();
+          const cloudChecks = data.checks || {};
+          const cloudCount = Object.keys(cloudChecks).filter(k => cloudChecks[k]).length;
+          const localCount = Object.keys(chk).filter(k => chk[k]).length;
+          
+          // Only update if cloud has more progress
+          if (cloudCount > localCount) {
+            chk = cloudChecks;
+            summary = data.summary || summary;
+            lastSavedJson = JSON.stringify(chk);
+            localStorage.setItem(`agenda:${dk()}`, JSON.stringify({checks:chk,summary}));
+            render();
+          }
           setSyncStatus("ok", "✓ sync");
         }
       } catch(e) {}
