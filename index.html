@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Agenda">
+<title>⚔️ Agenda Diária</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{min-height:100vh;min-height:100dvh;background:linear-gradient(145deg,#0D1117 0%,#161B22 50%,#1A1F2B 100%);font-family:-apple-system,'SF Pro Display','Segoe UI','Helvetica Neue',sans-serif;color:#E6EDF3;overflow-x:hidden}
+.header{background:linear-gradient(135deg,#0D1117 0%,#1C2333 100%);border-bottom:1px solid rgba(255,255,255,0.06);padding:max(env(safe-area-inset-top),24px) 24px 18px}
+.hi{max-width:720px;margin:0 auto}
+.ht{display:flex;align-items:center;gap:12px;margin-bottom:4px}
+.ht h1{font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#F0F6FC}
+.di{margin-left:34px}
+.dw{font-size:14px;color:#C9D1D9;font-weight:600}
+.df{font-size:12px;color:#8B949E;margin-top:2px}
+.motto{margin:8px 0 0 34px;font-size:11px;color:#6E7681;font-style:italic;letter-spacing:0.3px}
+.sync-status{margin-left:auto;font-size:10px;padding:4px 8px;border-radius:6px;font-weight:600;letter-spacing:0.3px}
+.sync-ok{background:rgba(63,185,80,0.1);color:#3FB950}
+.sync-pending{background:rgba(229,167,0,0.1);color:#E5A700}
+.sync-err{background:rgba(229,57,53,0.1);color:#E53935}
+.c{max-width:720px;margin:0 auto;padding:20px 16px 40px}
+.days{display:flex;gap:4px;margin-bottom:24px}
+.db{flex:1 1 0;min-width:44px;padding:10px 4px;border-radius:10px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);color:#8B949E;font-weight:500;font-size:11px;cursor:pointer;transition:all .2s;text-align:center;letter-spacing:0.3px;position:relative;font-family:inherit}
+.db.a{border:1.5px solid #58A6FF;background:linear-gradient(135deg,#1A3A5C 0%,#0D2240 100%);color:#58A6FF;font-weight:700}
+.dd{width:4px;height:4px;border-radius:50%;margin:4px auto 0}
+.stats{display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap}
+.sc{flex:1;min-width:100px;border-radius:12px;padding:14px 16px}
+.sl{font-size:11px;color:#8B949E;margin-bottom:4px}
+.sv{font-size:22px;font-weight:700}
+.tip{background:rgba(229,167,0,0.06);border:1px solid rgba(229,167,0,0.15);border-radius:10px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:#E5A700;line-height:1.5}
+.tl{display:flex;flex-direction:column;gap:3px}
+.tr{display:flex;align-items:center;gap:12px;border-radius:10px;transition:all .15s}
+.tr.bk{padding:16px;background:linear-gradient(135deg,rgba(229,101,0,0.08) 0%,rgba(229,101,0,0.03) 100%);border:1px solid rgba(229,101,0,0.2)}
+.tr.cm{padding:13px 16px;background:linear-gradient(135deg,rgba(88,166,255,0.06) 0%,rgba(88,166,255,0.02) 100%);border:1px solid rgba(88,166,255,0.15)}
+.tr.nm{padding:11px 16px;background:rgba(255,255,255,0.015);border:1px solid rgba(255,255,255,0.04)}
+.tr.ck{opacity:.6;background:rgba(63,185,80,0.04)!important;border:1px solid rgba(63,185,80,0.15)!important}
+.tr.cl{cursor:pointer}
+.cb{width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.cb.ck{background:#3FB950;border:2px solid #3FB950!important}
+.cms{color:#fff;font-size:12px;font-weight:700}
+.sp{width:20px;flex-shrink:0}
+.tt{font-size:12px;font-weight:600;color:#8B949E;width:42px;flex-shrink:0;font-variant-numeric:tabular-nums}
+.pd{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.tn{flex:1;letter-spacing:-0.1px}
+.td{font-size:10px;color:#6E7681;font-weight:500;white-space:nowrap}
+.lg{display:flex;gap:16px;justify-content:center;margin-top:28px;flex-wrap:wrap}
+.li{display:flex;align-items:center;gap:6px;font-size:11px;color:#8B949E}
+.ld{width:8px;height:8px;border-radius:50%}
+.qr{text-align:center;margin-top:24px;padding:10px 16px;background:rgba(139,94,60,0.08);border:1px solid rgba(139,94,60,0.15);border-radius:10px;font-size:12px;color:#B08968}
+.summary-box{margin-top:20px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:16px}
+.summary-box label{font-size:12px;color:#8B949E;display:block;margin-bottom:8px}
+.summary-box textarea{width:100%;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#C9D1D9;font-family:inherit;font-size:13px;padding:10px 12px;resize:vertical;min-height:60px;outline:none;transition:border-color .2s}
+.summary-box textarea:focus{border-color:#58A6FF}
+</style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- CONFIGURAÇÃO: Cole aqui a URL da sua implantação Apps Script  -->
+<!-- ============================================================ -->
+<script>
+// ⚠️ TROQUE ESTA URL pela URL da sua implantação do Apps Script
+const API_URL = "https://script.google.com/macros/s/AKfycbwPD2baGycH7PbIzPma3FddT3g-0z9y4Fk3lixHR9Tux0Jn2fGJqOd2Z8Uu7JAeHegr/exec";
+</script>
+
+<div class="header"><div class="hi">
+<div class="ht">
+  <span style="font-size:22px">⚔️</span>
+  <h1>Agenda Diária</h1>
+  <div class="sync-status sync-pending" id="sync">...</div>
+</div>
+<div class="di"><div class="dw" id="wd"></div><div class="df" id="fd"></div></div>
+<div class="motto">Cumpre o pequeno dever de cada momento</div>
+</div></div>
+
+<div class="c">
+<div class="days" id="days"></div>
+<div class="stats" id="stats"></div>
+<div class="tip">📱 <strong>Meta celular: máx. 2h30.</strong> Ative o Modo Concentração durante os blocos profundos.</div>
+<div class="tl" id="tasks"></div>
+
+<div class="summary-box">
+  <label>📝 Resumo do dia</label>
+  <textarea id="summary" placeholder="Como foi o dia? O que aprendeu? O que ajustar amanhã?"></textarea>
+</div>
+
+<div class="lg">
+<div class="li"><div class="ld" style="background:#E53935"></div>💪 Corpo</div>
+<div class="li"><div class="ld" style="background:#7B1FA2"></div>✝️ Espírito</div>
+<div class="li"><div class="ld" style="background:#1565C0"></div>🧠 Mente</div>
+<div class="li"><div class="ld" style="background:#E65100"></div>🎯 Missão</div>
+</div>
+<div class="qr">🍫 Quaresma: sem chocolate!</div>
+</div>
+
+<script>
+const D=["Segunda","Terça","Quarta","Quinta","Sexta","Sábado","Domingo"],
+CO={corpo:"#E53935",espirito:"#7B1FA2",mente:"#1565C0",missao:"#E65100",livre:"#546E7A"},
+S={
+Segunda:[
+{t:"07:30",n:"Acordar (Minuto Heróico)",p:"mente",d:5},
+{t:"07:35",n:"Planejamento do dia",p:"missao",d:10},
+{t:"07:45",n:"Lanche pré-treino (banana + leite)",p:"livre",d:15},
+{t:"08:00",n:"Academia",p:"corpo",d:60},
+{t:"09:00",n:"Minoxidil + Café da manhã",p:"corpo",d:20},
+{t:"09:20",n:"🔵 Bloco Profundo #1",p:"missao",d:220,b:1},
+{t:"13:00",n:"Almoço",p:"livre",d:60},
+{t:"14:00",n:"Terço",p:"espirito",d:40},
+{t:"14:40",n:"🔵 Bloco Profundo #2",p:"missao",d:300,b:1},
+{t:"19:40",n:"Meditação / Silêncio",p:"mente",d:8},
+{t:"19:50",n:"Banho gelado",p:"corpo",d:10},
+{t:"20:00",n:"Log de sintomas",p:"mente",d:5},
+{t:"20:05",n:"Escrita pessoal",p:"missao",d:20},
+{t:"20:25",n:"Estudo IA",p:"missao",d:30},
+{t:"20:55",n:"Jantar",p:"livre",d:30},
+{t:"21:25",n:"Oração em família + leitura espiritual",p:"espirito",d:15},
+{t:"21:40",n:"🟠 Subir campanhas Facebook Ads",p:"missao",d:45,w:1},
+{t:"22:25",n:"Tempo livre",p:"livre",d:25},
+{t:"22:50",n:"Visualização + Exercício Pélvico",p:"mente",d:19},
+{t:"23:10",n:"Escrever Afirmações",p:"mente",d:10},
+{t:"23:20",n:"Oração pessoal",p:"espirito",d:10},
+{t:"23:30",n:"Dormir",p:"livre",d:0}],
+"Terça":[
+{t:"07:30",n:"Acordar (Minuto Heróico)",p:"mente",d:5},
+{t:"07:35",n:"Planejamento do dia",p:"missao",d:10},
+{t:"07:45",n:"Lanche pré-treino (banana + leite)",p:"livre",d:15},
+{t:"08:00",n:"Minoxidil",p:"corpo",d:5},
+{t:"08:15",n:"Personal Trainer",p:"corpo",d:60},
+{t:"09:15",n:"Café da manhã",p:"livre",d:20},
+{t:"09:35",n:"🔵 Bloco Profundo #1",p:"missao",d:205,b:1},
+{t:"13:00",n:"Almoço",p:"livre",d:60},
+{t:"14:00",n:"Terço",p:"espirito",d:40},
+{t:"14:40",n:"🔵 Bloco Profundo #2",p:"missao",d:280,b:1},
+{t:"19:20",n:"Meditação / Silêncio",p:"mente",d:8},
+{t:"19:30",n:"Banho gelado",p:"corpo",d:10},
+{t:"19:40",n:"Escrita sobre o negócio",p:"missao",d:30},
+{t:"20:10",n:"Estudo IA",p:"missao",d:30},
+{t:"20:40",n:"Jantar",p:"livre",d:30},
+{t:"21:10",n:"Oração em família + leitura espiritual",p:"espirito",d:15},
+{t:"21:25",n:"🟠 Subir campanhas Facebook Ads",p:"missao",d:45,w:1},
+{t:"22:10",n:"Tempo livre",p:"livre",d:40},
+{t:"22:50",n:"Visualização + Exercício Pélvico",p:"mente",d:19},
+{t:"23:10",n:"Escrever Afirmações",p:"mente",d:10},
+{t:"23:20",n:"Oração pessoal",p:"espirito",d:10},
+{t:"23:30",n:"Dormir",p:"livre",d:0}],
+Quarta:[
+{t:"07:30",n:"Acordar (Minuto Heróico)",p:"mente",d:5},
+{t:"07:35",n:"Planejamento do dia",p:"missao",d:10},
+{t:"07:45",n:"Minoxidil + Café da manhã",p:"corpo",d:20},
+{t:"08:05",n:"Deslocamento",p:"livre",d:25},
+{t:"08:30",n:"Aula",p:"missao",d:150},
+{t:"11:00",n:"Lanche pré-treino (banana + leite)",p:"livre",d:10},
+{t:"11:10",n:"Academia + Cardio 10 min",p:"corpo",d:75},
+{t:"12:25",n:"Terço",p:"espirito",d:35},
+{t:"13:00",n:"Almoço",p:"livre",d:60},
+{t:"14:00",n:"🔵 Bloco Profundo #1",p:"missao",d:280,b:1},
+{t:"18:40",n:"Meditação / Silêncio",p:"mente",d:8},
+{t:"18:50",n:"Escrita sobre o negócio",p:"missao",d:30},
+{t:"19:20",n:"🔵 Bloco Profundo #2",p:"missao",d:60,b:1},
+{t:"20:20",n:"Banho gelado",p:"corpo",d:10},
+{t:"20:30",n:"Estudo IA",p:"missao",d:30},
+{t:"21:00",n:"Jantar",p:"livre",d:30},
+{t:"21:30",n:"Oração em família + leitura espiritual",p:"espirito",d:15},
+{t:"21:45",n:"🟠 Subir campanhas Facebook Ads",p:"missao",d:45,w:1},
+{t:"22:30",n:"Tempo livre",p:"livre",d:20},
+{t:"22:50",n:"Visualização + Exercício Pélvico",p:"mente",d:19},
+{t:"23:10",n:"Escrever Afirmações",p:"mente",d:10},
+{t:"23:20",n:"Oração pessoal",p:"espirito",d:10},
+{t:"23:30",n:"Dormir",p:"livre",d:0}],
+Quinta:[
+{t:"07:30",n:"Acordar (Minuto Heróico)",p:"mente",d:5},
+{t:"07:35",n:"Planejamento do dia",p:"missao",d:10},
+{t:"07:45",n:"Lanche pré-treino (banana + leite)",p:"livre",d:15},
+{t:"08:00",n:"Minoxidil",p:"corpo",d:5},
+{t:"08:15",n:"Personal Trainer",p:"corpo",d:60},
+{t:"09:15",n:"Café da manhã",p:"livre",d:20},
+{t:"09:35",n:"🔵 Bloco Profundo #1",p:"missao",d:205,b:1},
+{t:"13:00",n:"Almoço",p:"livre",d:60},
+{t:"14:00",n:"Terço",p:"espirito",d:40},
+{t:"14:40",n:"🔵 Bloco Profundo #2",p:"missao",d:280,b:1},
+{t:"19:20",n:"Meditação / Silêncio",p:"mente",d:8},
+{t:"19:30",n:"Banho gelado",p:"corpo",d:10},
+{t:"19:40",n:"Log de sintomas",p:"mente",d:5},
+{t:"19:45",n:"Escrita pessoal",p:"missao",d:20},
+{t:"20:05",n:"Estudo IA",p:"missao",d:30},
+{t:"20:35",n:"Jantar",p:"livre",d:30},
+{t:"21:05",n:"Oração em família + leitura espiritual",p:"espirito",d:15},
+{t:"21:20",n:"🟠 Subir campanhas Facebook Ads",p:"missao",d:45,w:1},
+{t:"22:05",n:"Tempo livre",p:"livre",d:45},
+{t:"22:50",n:"Visualização + Exercício Pélvico",p:"mente",d:19},
+{t:"23:10",n:"Escrever Afirmações",p:"mente",d:10},
+{t:"23:20",n:"Oração pessoal",p:"espirito",d:10},
+{t:"23:30",n:"Dormir",p:"livre",d:0}],
+Sexta:[
+{t:"07:30",n:"Acordar (Minuto Heróico)",p:"mente",d:5},
+{t:"07:35",n:"Planejamento do dia",p:"missao",d:10},
+{t:"07:45",n:"Lanche pré-treino (banana + leite)",p:"livre",d:15},
+{t:"08:00",n:"Academia + Cardio 10 min",p:"corpo",d:75},
+{t:"09:15",n:"Minoxidil + Café da manhã",p:"corpo",d:20},
+{t:"09:35",n:"🔵 Bloco Profundo #1",p:"missao",d:205,b:1},
+{t:"13:00",n:"Almoço (Jejum + Abstinência de carne)",p:"espirito",d:60},
+{t:"14:00",n:"Terço",p:"espirito",d:40},
+{t:"14:40",n:"🔵 Bloco Profundo #2",p:"missao",d:180,b:1},
+{t:"17:40",n:"Meditação / Silêncio",p:"mente",d:8},
+{t:"17:50",n:"Banho gelado + Preparar p/ Missa",p:"corpo",d:20},
+{t:"18:10",n:"Deslocamento",p:"livre",d:20},
+{t:"18:30",n:"Missa",p:"espirito",d:60},
+{t:"19:30",n:"Escrita sobre o negócio",p:"missao",d:30},
+{t:"20:00",n:"Estudo IA",p:"missao",d:30},
+{t:"20:30",n:"Jantar",p:"livre",d:30},
+{t:"21:00",n:"Oração em família + leitura espiritual",p:"espirito",d:15},
+{t:"21:15",n:"🟠 Subir campanhas Facebook Ads",p:"missao",d:45,w:1},
+{t:"22:00",n:"Tempo livre",p:"livre",d:50},
+{t:"22:50",n:"Visualização + Exercício Pélvico",p:"mente",d:19},
+{t:"23:10",n:"Escrever Afirmações",p:"mente",d:10},
+{t:"23:20",n:"Oração pessoal",p:"espirito",d:10},
+{t:"23:30",n:"Dormir",p:"livre",d:0}],
+"Sábado":[
+{t:"09:00",n:"Acordar (Minuto Heróico)",p:"mente",d:5},
+{t:"09:05",n:"Planejamento do dia",p:"missao",d:10},
+{t:"09:15",n:"Minoxidil + Café da manhã",p:"corpo",d:20},
+{t:"09:35",n:"Tempo livre",p:"livre",d:40},
+{t:"10:15",n:"Lanche pré-treino (banana + leite)",p:"livre",d:15},
+{t:"10:30",n:"Boxe",p:"corpo",d:60},
+{t:"11:30",n:"Prancha (3x na semana)",p:"corpo",d:5},
+{t:"11:35",n:"Banho + Descanso",p:"livre",d:25},
+{t:"12:00",n:"Tempo livre",p:"livre",d:60},
+{t:"13:00",n:"Almoço",p:"livre",d:60},
+{t:"14:00",n:"Terço",p:"espirito",d:40},
+{t:"14:40",n:"🔵 Bloco Profundo",p:"missao",d:270,b:1},
+{t:"19:10",n:"Meditação / Silêncio",p:"mente",d:8},
+{t:"19:20",n:"Banho gelado",p:"corpo",d:10},
+{t:"19:30",n:"Leitura",p:"mente",d:45},
+{t:"20:15",n:"Estudo IA",p:"missao",d:30},
+{t:"20:45",n:"Jantar",p:"livre",d:30},
+{t:"21:15",n:"Oração em família + leitura espiritual",p:"espirito",d:15},
+{t:"21:30",n:"🟠 Subir campanhas Facebook Ads",p:"missao",d:45,w:1},
+{t:"22:15",n:"Tempo livre",p:"livre",d:35},
+{t:"22:50",n:"Visualização + Exercício Pélvico",p:"mente",d:19},
+{t:"23:10",n:"Escrever Afirmações",p:"mente",d:10},
+{t:"23:20",n:"Oração pessoal",p:"espirito",d:10},
+{t:"23:30",n:"Dormir",p:"livre",d:0}],
+Domingo:[
+{t:"09:00",n:"Acordar (Minuto Heróico)",p:"mente",d:5},
+{t:"09:05",n:"Planejamento da semana",p:"missao",d:20},
+{t:"09:25",n:"Minoxidil + Café da manhã",p:"corpo",d:20},
+{t:"09:45",n:"Tempo livre",p:"livre",d:75},
+{t:"11:00",n:"Terço",p:"espirito",d:40},
+{t:"11:40",n:"Tempo livre",p:"livre",d:80},
+{t:"13:00",n:"Almoço",p:"livre",d:60},
+{t:"14:00",n:"🔵 Bloco Profundo",p:"missao",d:270,b:1},
+{t:"18:30",n:"Meditação / Silêncio",p:"mente",d:8},
+{t:"18:40",n:"Banho gelado",p:"corpo",d:10},
+{t:"18:50",n:"Preparar p/ Missa + Deslocamento",p:"livre",d:40},
+{t:"19:30",n:"Missa",p:"espirito",d:60},
+{t:"20:30",n:"Jantar",p:"livre",d:30},
+{t:"21:00",n:"Leitura",p:"mente",d:30},
+{t:"21:30",n:"Oração em família + leitura espiritual",p:"espirito",d:15},
+{t:"21:45",n:"🟠 Subir campanhas Facebook Ads",p:"missao",d:45,w:1},
+{t:"22:30",n:"Estudo IA",p:"missao",d:20},
+{t:"22:50",n:"Visualização + Exercício Pélvico",p:"mente",d:19},
+{t:"23:10",n:"Escrever Afirmações",p:"mente",d:10},
+{t:"23:20",n:"Oração pessoal",p:"espirito",d:10},
+{t:"23:30",n:"Dormir",p:"livre",d:0}]
+};
+
+let sel, chk={}, summary="", saveTimer=null, syncState="pending";
+
+function dk(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function ti(){const j=new Date().getDay();return j===0?6:j-1}
+function fm(m){if(m>=60){const h=Math.floor(m/60),r=m%60;return r?`${h}h${r}m`:`${h}h`}return`${m}m`}
+
+// ---- SYNC ----
+
+function setSyncStatus(state, text) {
+  syncState = state;
+  const el = document.getElementById('sync');
+  el.className = 'sync-status sync-' + state;
+  el.textContent = text;
+}
+
+async function loadFromCloud() {
+  if (API_URL === "COLE_SUA_URL_AQUI") {
+    // Fallback to localStorage
+    try { const r=localStorage.getItem(`agenda:${dk()}`); if(r){const p=JSON.parse(r);chk=p.checks||{};summary=p.summary||""} } catch(e){}
+    setSyncStatus("pending", "local");
+    return;
+  }
+
+  try {
+    setSyncStatus("pending", "sync...");
+    const r = await fetch(`${API_URL}?action=load&date=${dk()}`);
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    chk = data.checks || {};
+    summary = data.summary || "";
+    // Also save locally as backup
+    localStorage.setItem(`agenda:${dk()}`, JSON.stringify({checks:chk,summary}));
+    setSyncStatus("ok", "✓ sync");
+  } catch (e) {
+    console.error("Load error:", e);
+    // Fallback to localStorage
+    try { const r=localStorage.getItem(`agenda:${dk()}`); if(r){const p=JSON.parse(r);chk=p.checks||{};summary=p.summary||""} } catch(e2){}
+    setSyncStatus("err", "offline");
+  }
+}
+
+function scheduleSave() {
+  // Always save locally immediately
+  localStorage.setItem(`agenda:${dk()}`, JSON.stringify({checks:chk,summary}));
+
+  if (API_URL === "COLE_SUA_URL_AQUI") return;
+
+  // Debounce cloud save by 1.5s
+  if (saveTimer) clearTimeout(saveTimer);
+  setSyncStatus("pending", "salvando...");
+  saveTimer = setTimeout(async () => {
+    try {
+      const r = await fetch(API_URL, {
+        method: "POST",
+        headers: {"Content-Type":"text/plain"}, // Apps Script quirk
+        body: JSON.stringify({ action:"save", date:dk(), checks:chk, summary })
+      });
+      const data = await r.json();
+      if (data.error) throw new Error(data.error);
+      setSyncStatus("ok", "✓ sync");
+    } catch (e) {
+      console.error("Save error:", e);
+      setSyncStatus("err", "offline");
+    }
+  }, 1500);
+}
+
+// ---- RENDER ----
+
+function render() {
+  const d=new Date(),
+  mo=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"],
+  wd=["Domingo","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado"];
+  document.getElementById('wd').textContent=wd[d.getDay()];
+  document.getElementById('fd').textContent=`${d.getDate()} de ${mo[d.getMonth()]} de ${d.getFullYear()}`;
+
+  // Days
+  const de=document.getElementById('days');de.innerHTML='';
+  D.forEach((day,i)=>{
+    const b=document.createElement('button');b.className='db'+(i===sel?' a':'');b.textContent=day.slice(0,3);
+    if(i===ti()){const dot=document.createElement('div');dot.className='dd';dot.style.background=i===sel?'#58A6FF':'#3FB950';b.appendChild(dot)}
+    b.onclick=()=>{sel=i;render()};de.appendChild(b)
+  });
+
+  const dn=D[sel],tasks=S[dn]||[],
+  wh=tasks.filter(x=>x.b||x.w).reduce((s,x)=>s+(x.d||0),0)/60,
+  tot=tasks.filter(x=>x.d>0).length,
+  done=Object.keys(chk).filter(k=>k.startsWith(dn+'-')&&chk[k]).length;
+
+  // Stats
+  const se=document.getElementById('stats'),
+  st=done>=tot&&tot>0?'🟢 Dia completo!':done/tot>.7?'Quase lá...':done/tot>.3?'Seguindo firme':'Bora começar',
+  sc=done>=tot&&tot>0?'#3FB950':done/tot>.5?'#E5A700':'#F0F6FC';
+  se.innerHTML=`
+  <div class="sc" style="background:rgba(88,166,255,0.06);border:1px solid rgba(88,166,255,0.12)"><div class="sl">Horas de trabalho</div><div class="sv" style="color:#58A6FF">${wh.toFixed(1)}h</div></div>
+  <div class="sc" style="background:rgba(63,185,80,0.06);border:1px solid rgba(63,185,80,0.12)"><div class="sl">Progresso</div><div class="sv" style="color:#3FB950">${done}/${tot}</div></div>
+  <div class="sc" style="background:${done>=tot&&tot>0?'rgba(63,185,80,0.1)':'rgba(255,255,255,0.03)'};border:1px solid ${done>=tot&&tot>0?'rgba(63,185,80,0.25)':'rgba(255,255,255,0.06)'}"><div class="sl">Status</div><div style="font-size:14px;font-weight:700;color:${sc}">${st}</div></div>`;
+
+  // Tasks
+  const te=document.getElementById('tasks');te.innerHTML='';
+  tasks.forEach((task,idx)=>{
+    const key=`${dn}-${idx}`,ck=!!chk[key],ib=task.b,ic=task.w,hc=task.d>0,col=CO[task.p];
+    const row=document.createElement('div');
+    let cls='tr';
+    if(ck)cls+=' ck';else if(ib)cls+=' bk';else if(ic)cls+=' cm';else cls+=' nm';
+    if(hc)cls+=' cl';
+    row.className=cls;
+    if(hc)row.onclick=()=>{chk[key]=!chk[key];scheduleSave();render()};
+
+    if(hc){const cb=document.createElement('div');cb.className='cb'+(ck?' ck':'');cb.style.border=ck?'2px solid #3FB950':`2px solid ${col}44`;if(ck)cb.innerHTML='<span class="cms">✓</span>';row.appendChild(cb)}
+    else{const sp=document.createElement('div');sp.className='sp';row.appendChild(sp)}
+
+    const tm=document.createElement('span');tm.className='tt';tm.textContent=task.t;row.appendChild(tm);
+    const pd=document.createElement('span');pd.className='pd';pd.style.background=col;pd.style.opacity=ck?'0.4':'0.8';row.appendChild(pd);
+    const nm=document.createElement('span');nm.className='tn';nm.style.fontSize=(ib||ic)?'14px':'13px';nm.style.fontWeight=(ib||ic)?'700':'500';nm.style.color=ck?'#8B949E':ib?'#F0F6FC':ic?'#58A6FF':'#C9D1D9';nm.style.textDecoration=ck?'line-through':'none';nm.textContent=task.n;row.appendChild(nm);
+    if(task.d>0){const du=document.createElement('span');du.className='td';du.textContent=fm(task.d);row.appendChild(du)}
+    te.appendChild(row)
+  });
+
+  // Summary
+  const sumEl = document.getElementById('summary');
+  sumEl.value = summary;
+}
+
+// ---- INIT ----
+
+(async function init() {
+  sel = ti();
+  await loadFromCloud();
+  render();
+
+  // Summary save
+  document.getElementById('summary').addEventListener('input', (e) => {
+    summary = e.target.value;
+    scheduleSave();
+  });
+
+  // Re-sync every 30s
+  setInterval(async () => {
+    if (API_URL !== "COLE_SUA_URL_AQUI" && !document.hidden) {
+      try {
+        const r = await fetch(`${API_URL}?action=load&date=${dk()}`);
+        const data = await r.json();
+        if (!data.error) {
+          chk = data.checks || {};
+          summary = data.summary || "";
+          render();
+          setSyncStatus("ok", "✓ sync");
+        }
+      } catch(e) {}
+    }
+  }, 30000);
+})();
+</script>
+</body>
+</html>
