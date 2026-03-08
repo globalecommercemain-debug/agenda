@@ -51,6 +51,11 @@ body{min-height:100vh;min-height:100dvh;background:linear-gradient(145deg,#0D111
 .li{display:flex;align-items:center;gap:6px;font-size:11px;color:#8B949E}
 .ld{width:8px;height:8px;border-radius:50%}
 .qr{text-align:center;margin-top:24px;padding:10px 16px;background:rgba(139,94,60,0.08);border:1px solid rgba(139,94,60,0.15);border-radius:10px;font-size:12px;color:#B08968}
+.nav-btn{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#8B949E;font-size:22px;width:36px;height:36px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;font-family:inherit;line-height:1}
+.nav-btn:hover{background:rgba(88,166,255,0.1);color:#58A6FF;border-color:rgba(88,166,255,0.3)}
+.today-btn{background:rgba(88,166,255,0.1);border:1px solid rgba(88,166,255,0.25);color:#58A6FF;font-size:11px;padding:6px 12px;border-radius:8px;cursor:pointer;font-weight:600;font-family:inherit;transition:all .2s;letter-spacing:0.3px}
+.today-btn:hover{background:rgba(88,166,255,0.2)}
+.past-banner{background:rgba(88,166,255,0.06);border:1px solid rgba(88,166,255,0.12);border-radius:10px;padding:10px 16px;margin-bottom:16px;font-size:12px;color:#58A6FF;text-align:center}
 .summary-box{margin-top:20px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:16px}
 .summary-box label{font-size:12px;color:#8B949E;display:block;margin-bottom:8px}
 .summary-box textarea{width:100%;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#C9D1D9;font-family:inherit;font-size:13px;padding:10px 12px;resize:vertical;min-height:60px;outline:none;transition:border-color .2s}
@@ -73,7 +78,17 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwPD2baGycH7PbIzPma3Fdd
   <h1>Agenda Diária</h1>
   <div class="sync-status sync-pending" id="sync">...</div>
 </div>
-<div class="di"><div class="dw" id="wd"></div><div class="df" id="fd"></div></div>
+<div class="di">
+  <div style="display:flex;align-items:center;gap:12px">
+    <button id="prevDay" class="nav-btn">‹</button>
+    <div>
+      <div class="dw" id="wd"></div>
+      <div class="df" id="fd"></div>
+    </div>
+    <button id="nextDay" class="nav-btn">›</button>
+    <button id="todayBtn" class="today-btn" style="display:none">Hoje</button>
+  </div>
+</div>
 <div class="motto">Cumpre o pequeno dever de cada momento</div>
 </div></div>
 
@@ -269,10 +284,29 @@ Domingo:[
 };
 
 let sel, chk={}, summary="", saveTimer=null, syncState="pending";
+let currentDate = new Date(); // The date being viewed
 
-function dk(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
-function ti(){const j=new Date().getDay();return j===0?6:j-1}
+function dk(d){d=d||currentDate;return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function todayKey(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function isToday(){return dk(currentDate)===todayKey()}
+function dayIndexOf(d){const j=d.getDay();return j===0?6:j-1}
+function ti(){return dayIndexOf(currentDate)}
 function fm(m){if(m>=60){const h=Math.floor(m/60),r=m%60;return r?`${h}h${r}m`:`${h}h`}return`${m}m`}
+
+function navigateDay(offset){
+  currentDate=new Date(currentDate);
+  currentDate.setDate(currentDate.getDate()+offset);
+  sel=dayIndexOf(currentDate);
+  chk={};summary="";
+  loadFromCloud().then(()=>render());
+}
+
+function goToday(){
+  currentDate=new Date();
+  sel=dayIndexOf(currentDate);
+  chk={};summary="";
+  loadFromCloud().then(()=>render());
+}
 
 // ---- SYNC ----
 
@@ -422,19 +456,45 @@ function scheduleSave() {
 // ---- RENDER ----
 
 function render() {
-  const d=new Date(),
+  const d=currentDate,
   mo=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"],
   wd=["Domingo","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado"];
   document.getElementById('wd').textContent=wd[d.getDay()];
   document.getElementById('fd').textContent=`${d.getDate()} de ${mo[d.getMonth()]} de ${d.getFullYear()}`;
+  
+  // Show/hide today button
+  const todayBtn=document.getElementById('todayBtn');
+  todayBtn.style.display=isToday()?'none':'inline-block';
+  
+  // Disable next button if viewing today or future
+  const nextBtn=document.getElementById('nextDay');
+  const todayDate=new Date();todayDate.setHours(0,0,0,0);
+  const viewDate=new Date(currentDate);viewDate.setHours(0,0,0,0);
+  nextBtn.style.opacity=viewDate>=todayDate?'0.3':'1';
+  nextBtn.style.pointerEvents=viewDate>=todayDate?'none':'auto';
 
   // Days
   const de=document.getElementById('days');de.innerHTML='';
   D.forEach((day,i)=>{
-    const b=document.createElement('button');b.className='db'+(i===sel?' a':'');b.textContent=day.slice(0,3);
-    if(i===ti()){const dot=document.createElement('div');dot.className='dd';dot.style.background=i===sel?'#58A6FF':'#3FB950';b.appendChild(dot)}
-    b.onclick=()=>{sel=i;render()};de.appendChild(b)
+    const active=i===sel;
+    const b=document.createElement('button');b.className='db'+(active?' a':'');b.textContent=day.slice(0,3);
+    if(i===dayIndexOf(new Date())&&isToday()){const dot=document.createElement('div');dot.className='dd';dot.style.background=active?'#58A6FF':'#3FB950';b.appendChild(dot)}
+    b.onclick=()=>{
+      const diff=i-sel;
+      navigateDay(diff);
+    };
+    de.appendChild(b)
   });
+
+  // Past day banner
+  let banner=document.getElementById('pastBanner');
+  if(!isToday()){
+    if(!banner){banner=document.createElement('div');banner.id='pastBanner';banner.className='past-banner';
+    document.getElementById('tasks').parentNode.insertBefore(banner,document.getElementById('tasks'))}
+    const daysAgo=Math.round((new Date()-currentDate)/(1000*60*60*24));
+    banner.textContent=daysAgo===1?'📅 Ontem':daysAgo>0?`📅 ${daysAgo} dias atrás`:'📅 Futuro';
+    banner.style.display='block';
+  } else if(banner){banner.style.display='none'}
 
   const dn=D[sel],tasks=S[dn]||[],
   wh=tasks.filter(x=>x.b||x.w).reduce((s,x)=>s+(x.d||0),0)/60,
@@ -479,9 +539,14 @@ function render() {
 // ---- INIT ----
 
 (async function init() {
-  sel = ti();
+  sel = dayIndexOf(currentDate);
   await loadFromCloud();
   render();
+
+  // Navigation
+  document.getElementById('prevDay').onclick = () => navigateDay(-1);
+  document.getElementById('nextDay').onclick = () => navigateDay(1);
+  document.getElementById('todayBtn').onclick = () => goToday();
 
   // Summary save
   document.getElementById('summary').addEventListener('input', (e) => {
@@ -489,9 +554,9 @@ function render() {
     scheduleSave();
   });
 
-  // Re-sync every 30s (only pull if not currently saving)
+  // Re-sync every 30s (only for today, only if not saving)
   setInterval(async () => {
-    if (API_CONFIGURED && !document.hidden && !saveTimer) {
+    if (API_CONFIGURED && !document.hidden && !saveTimer && isToday()) {
       try {
         const data = await apiGet({ action: "load", date: dk() });
         if (!data.error) {
@@ -499,7 +564,6 @@ function render() {
           const cloudCount = Object.keys(cloudChecks).filter(k => cloudChecks[k]).length;
           const localCount = Object.keys(chk).filter(k => chk[k]).length;
           
-          // Only update if cloud has more progress
           if (cloudCount > localCount) {
             chk = cloudChecks;
             summary = data.summary || summary;
