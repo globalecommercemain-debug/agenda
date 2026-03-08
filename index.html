@@ -324,8 +324,8 @@ function scheduleSave() {
       const params = new URLSearchParams({
         action: "save",
         date: dk(),
-        checks: encodeURIComponent(JSON.stringify(chk)),
-        summary: encodeURIComponent(summary)
+        checks: JSON.stringify(chk),
+        summary: summary
       });
       const r = await fetch(`${API_URL}?${params.toString()}`);
       const data = await r.json();
